@@ -129,12 +129,12 @@ int main(int argc, char *argv[]) {
     preprocess_heatmap(heatmap, rows, cols, work_factor);
     
     // Step 3: Part A - Calculate maximum range sums for each column
-    long long *max_sums = (long long*) malloc(cols * sizeof(long long));
+    unsigned long long *max_sums = (unsigned long long*) malloc(cols * sizeof(unsigned long long));
     
     #pragma omp parallel for
     for (int col = 0; col < cols; col++) {
-        long long max_sum = 0;
-        long long current_sum = 0;
+        unsigned long long max_sum = 0;
+        unsigned long long current_sum = 0;
         
         // Calculate initial window sum
         for (int row = 0; row < window_height; row++) {
@@ -227,8 +227,8 @@ int main(int argc, char *argv[]) {
             // Print maximum sliding sums per column
             printf("Max sliding sums per column:\n");
             for (int col = 0; col < cols; col++) {
-                if (col > 0) printf(", ");
-                printf("%lld", max_sums[col]);
+                if (col > 0) printf(",");
+                printf("%llu", max_sums[col]);
             }
             printf("\n");
             
