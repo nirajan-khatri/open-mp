@@ -40,7 +40,7 @@ unsigned long my_rand(unsigned long* state, unsigned long lower, unsigned long u
 }
 
 // Initialize heatmap with random values
-unsigned long* initialize_heatmap(int rows, int cols, int seed, int lower, int upper) {
+unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsigned long lower, unsigned long upper) {
     // Allocate flat 1D array to represent 2D matrix (unsigned long as per spec)
     unsigned long *heatmap = (unsigned long*) malloc(rows * cols * sizeof(unsigned long));
     
@@ -87,9 +87,9 @@ int main(int argc, char *argv[]) {
     // Parse command-line arguments
     int cols = atoi(argv[1]);       // columns
     int rows = atoi(argv[2]);       // rows
-    int seed = atoi(argv[3]);       // seed
-    int lower = atoi(argv[4]);      // lower bound
-    int upper = atoi(argv[5]);      // upper bound
+    unsigned long seed = strtoul(argv[3], NULL, 10);  // seed
+    unsigned long lower = strtoul(argv[4], NULL, 10); // lower bound
+    unsigned long upper = strtoul(argv[5], NULL, 10); // upper bound
     int window_height = atoi(argv[6]); // window_height
     int verbose = atoi(argv[7]);    // verbose
     int num_threads = atoi(argv[8]); // num_threads
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
     
     // Print startup message and parameters
     printf("Starting heatmap_analysis\n");
-    printf("Parameters: columns=%d, rows=%d, seed=%d, lower=%d, upper=%d, window_height=%d, verbose=%d, num_threads=%d, work_factor=%d\n",
+    printf("Parameters: columns=%d, rows=%d, seed=%lu, lower=%lu, upper=%lu, window_height=%d, verbose=%d, num_threads=%d, work_factor=%d\n",
            cols, rows, seed, lower, upper, window_height, verbose, num_threads, work_factor);
     
     // Start timing
