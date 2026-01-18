@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < rows; i++) {
         int row_hotspots = 0;
         for (int j = 0; j < cols; j++) {
-            int current = heatmap[i * cols + j];
+            unsigned long current = heatmap[i * cols + j];
             int is_hotspot = 1;
             
             // Check all 4 neighbors (up, down, left, right)
@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
         // Print hotspots per row
         printf("Hotspots per row:\n");
         for (int row = 0; row < rows; row++) {
-            printf("Row%d: %d hotspot(s)\n", row, hotspots_per_row[row].count);
+            printf("Row %d: %d hotspot(s)\n", row, hotspots_per_row[row].count);
         }
     }
     
