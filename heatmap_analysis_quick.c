@@ -173,22 +173,22 @@ int main(int argc, char *argv[]) {
             int is_hotspot = 1;
             
             // Check all 4 neighbors (up, down, left, right)
-            // If any neighbor doesn't exist or is >= current, not a hotspot
+            // Only check neighbors that exist - edge cells have fewer neighbors
             
-            // Check up
-            if (i == 0 || heatmap[(i-1) * cols + j] >= current) {
+            // Check up (only if not first row)
+            if (is_hotspot && i > 0 && heatmap[(i-1) * cols + j] >= current) {
                 is_hotspot = 0;
             }
-            // Check down
-            if (is_hotspot && (i == rows - 1 || heatmap[(i+1) * cols + j] >= current)) {
+            // Check down (only if not last row)
+            if (is_hotspot && i < rows - 1 && heatmap[(i+1) * cols + j] >= current) {
                 is_hotspot = 0;
             }
-            // Check left
-            if (is_hotspot && (j == 0 || heatmap[i * cols + (j-1)] >= current)) {
+            // Check left (only if not first column)
+            if (is_hotspot && j > 0 && heatmap[i * cols + (j-1)] >= current) {
                 is_hotspot = 0;
             }
-            // Check right
-            if (is_hotspot && (j == cols - 1 || heatmap[i * cols + (j+1)] >= current)) {
+            // Check right (only if not last column)
+            if (is_hotspot && j < cols - 1 && heatmap[i * cols + (j+1)] >= current) {
                 is_hotspot = 0;
             }
             
