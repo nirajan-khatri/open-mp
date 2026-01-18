@@ -153,16 +153,23 @@ int main(int argc, char *argv[]) {
         max_sums[col] = max_sum;
     }
     
-    // Step 4: Part B - Count local hotspots
+    // Step 4: Part B - Count local hotspots with early termination
     // Use padded structure to prevent false sharing between threads
     padded_int *hotspots_per_row = (padded_int*) calloc(rows, sizeof(padded_int));
     int total_hotspots = 0;
+    int early_exit_row = -1;  // Track which row triggered early exit
+    int should_exit = 0;       // Shared flag for early termination
     
-    #pragma omp parallel for reduction(+:total_hotspots)
+    #pragma omp parallel for reduction(+:total_hotspots) schedule(dynamic)
     for (int i = 0; i < rows; i++) {
+        // Check if another thread already found a row with zero hotspots
+        if (should_exit) {
+            continue;  // Skip remaining rows
+        }
+        
         int row_hotspots = 0;
         for (int j = 0; j < cols; j++) {
-            int current = heatmap[i * cols + j];
+            unsigned long current = heatmap[i * cols + j];
             int is_hotspot = 1;
             
             // Check all 4 neighbors (up, down, left, right)
@@ -189,33 +196,52 @@ int main(int argc, char *argv[]) {
                 row_hotspots++;
             }
         }
+        
         hotspots_per_row[i].count = row_hotspots;
         total_hotspots += row_hotspots;
+        
+        // Check for early exit condition
+        if (row_hotspots == 0) {
+            #pragma omp critical
+            {
+                if (!should_exit) {
+                    should_exit = 1;
+                    early_exit_row = i;
+                }
+            }
+        }
     }
     
     // End timing
     double end_time = omp_get_wtime();
     double elapsed_time = end_time - start_time;
     
-    // Output results
-    if (verbose) {
-        // Print maximum sliding sums per column
-        printf("Max sliding sums per column:\n");
-        for (int col = 0; col < cols; col++) {
-            if (col > 0) printf(",");
-            printf("%lld", max_sums[col]);
+    // Check if early exit occurred
+    if (early_exit_row != -1) {
+        printf("Row %d contains no hotspots.\n", early_exit_row);
+        printf("Early exit.\n");
+        printf("Execution took %.4f s\n", elapsed_time);
+    } else {
+        // Normal output - all rows have at least one hotspot
+        if (verbose) {
+            // Print maximum sliding sums per column
+            printf("Max sliding sums per column:\n");
+            for (int col = 0; col < cols; col++) {
+                if (col > 0) printf(", ");
+                printf("%lld", max_sums[col]);
+            }
+            printf("\n");
+            
+            // Print hotspots per row
+            printf("Hotspots per row:\n");
+            for (int row = 0; row < rows; row++) {
+                printf("Row %d: %d hotspot(s)\n", row, hotspots_per_row[row].count);
+            }
         }
-        printf("\n");
         
-        // Print hotspots per row
-        printf("Hotspots per row:\n");
-        for (int row = 0; row < rows; row++) {
-            printf("Row%d: %d hotspot(s)\n", row, hotspots_per_row[row].count);
-        }
+        printf("Total hotspots found: %d\n", total_hotspots);
+        printf("Execution took %.4f s\n", elapsed_time);
     }
-    
-    printf("Total hotspots found: %d\n", total_hotspots);
-    printf("Execution took %.4f s\n", elapsed_time);
     
     // Clean up
     free(max_sums);
