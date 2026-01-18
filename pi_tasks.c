@@ -31,11 +31,11 @@ unsigned long my_rand(unsigned long* state, unsigned long lower, unsigned long u
 }
 
 // Compute π using the integral method (midpoint rule)
+// Note: No parallelism here - each task is itself a parallel unit of work
 double compute_pi(unsigned long precision) {
     double sum = 0.0;
     double dx = 1.0 / precision;
     
-    #pragma omp parallel for reduction(+:sum)
     for (unsigned long i = 0; i < precision; i++) {
         double x = (i + 0.5) * dx;
         sum += 4.0 / (1.0 + x * x);

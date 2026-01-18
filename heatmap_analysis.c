@@ -63,13 +63,15 @@ unsigned long* initialize_heatmap(int rows, int cols, int seed, int lower, int u
 
 // Pre-process heatmap by applying hash function work_factor times
 void preprocess_heatmap(unsigned long *heatmap, int rows, int cols, int work_factor) {
-    // Apply hash function work_factor times to each element
-    for (int iteration = 0; iteration < work_factor; iteration++) {
-        #pragma omp parallel for collapse(2)
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                heatmap[i * cols + j] = hash(heatmap[i * cols + j]);
+    // Apply hash function work_factor times to each element - single parallel region
+    #pragma omp parallel for collapse(2)
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            unsigned long val = heatmap[i * cols + j];
+            for (int w = 0; w < work_factor; w++) {
+                val = hash(val);
             }
+            heatmap[i * cols + j] = val;
         }
     }
 }
@@ -118,7 +120,7 @@ int main(int argc, char *argv[]) {
         printf("A:\n");
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                if (j > 0) printf(", ");
+                if (j > 0) printf(",");
                 printf("%lu", heatmap[i * cols + j]);
             }
             printf("\n");

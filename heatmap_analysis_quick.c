@@ -63,13 +63,15 @@ unsigned long* initialize_heatmap(int rows, int cols, int seed, int lower, int u
 
 // Pre-process heatmap by applying hash function work_factor times
 void preprocess_heatmap(unsigned long *heatmap, int rows, int cols, int work_factor) {
-    // Apply hash function work_factor times to each element
-    for (int iteration = 0; iteration < work_factor; iteration++) {
-        #pragma omp parallel for collapse(2)
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                heatmap[i * cols + j] = hash(heatmap[i * cols + j]);
+    // Apply hash function work_factor times to each element - single parallel region
+    #pragma omp parallel for collapse(2)
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            unsigned long val = heatmap[i * cols + j];
+            for (int w = 0; w < work_factor; w++) {
+                val = hash(val);
             }
+            heatmap[i * cols + j] = val;
         }
     }
 }
@@ -118,7 +120,7 @@ int main(int argc, char *argv[]) {
         printf("A:\n");
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                if (j > 0) printf(", ");
+                if (j > 0) printf(",");
                 printf("%lu", heatmap[i * cols + j]);
             }
             printf("\n");
@@ -128,39 +130,14 @@ int main(int argc, char *argv[]) {
     // Step 2: Pre-process heatmap
     preprocess_heatmap(heatmap, rows, cols, work_factor);
     
-    // Step 3: Part A - Calculate maximum range sums for each column
-    unsigned long long *max_sums = (unsigned long long*) malloc(cols * sizeof(unsigned long long));
-    
-    #pragma omp parallel for
-    for (int col = 0; col < cols; col++) {
-        unsigned long long max_sum = 0;
-        unsigned long long current_sum = 0;
-        
-        // Calculate initial window sum
-        for (int row = 0; row < window_height; row++) {
-            current_sum += heatmap[row * cols + col];
-        }
-        max_sum = current_sum;
-        
-        // Slide the window down
-        for (int row = window_height; row < rows; row++) {
-            current_sum = current_sum - heatmap[(row - window_height) * cols + col] + heatmap[row * cols + col];
-            if (current_sum > max_sum) {
-                max_sum = current_sum;
-            }
-        }
-        
-        max_sums[col] = max_sum;
-    }
-    
-    // Step 4: Part B - Count local hotspots with early termination
-    // Use padded structure to prevent false sharing between threads
+    // Step 3: Part B - Count local hotspots with early termination
+    // Check hotspots FIRST to enable early exit as quickly as possible
     padded_int *hotspots_per_row = (padded_int*) calloc(rows, sizeof(padded_int));
     int total_hotspots = 0;
-    int early_exit_row = -1;  // Track which row triggered early exit
-    int should_exit = 0;       // Shared flag for early termination
+    volatile int early_exit_row = -1;  // Use volatile for visibility across threads
+    volatile int should_exit = 0;       // Shared flag for early termination
     
-    #pragma omp parallel for reduction(+:total_hotspots) schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic) reduction(+:total_hotspots)
     for (int i = 0; i < rows; i++) {
         // Check if another thread already found a row with zero hotspots
         if (should_exit) {
@@ -212,42 +189,74 @@ int main(int argc, char *argv[]) {
         }
     }
     
+    // Check if early exit occurred
+    if (early_exit_row != -1) {
+        // End timing
+        double end_time = omp_get_wtime();
+        double elapsed_time = end_time - start_time;
+        
+        printf("Row %d contains no hotspots.\n", early_exit_row);
+        printf("Early exit.\n");
+        printf("Execution took %.4f s\n", elapsed_time);
+        
+        // Clean up
+        free(hotspots_per_row);
+        free(heatmap);
+        return 0;
+    }
+    
+    // No early exit - compute sliding sums (only do this if all rows have hotspots)
+    unsigned long long *max_sums = (unsigned long long*) malloc(cols * sizeof(unsigned long long));
+    
+    #pragma omp parallel for
+    for (int col = 0; col < cols; col++) {
+        unsigned long long max_sum = 0;
+        unsigned long long current_sum = 0;
+        
+        // Calculate initial window sum
+        for (int row = 0; row < window_height; row++) {
+            current_sum += heatmap[row * cols + col];
+        }
+        max_sum = current_sum;
+        
+        // Slide the window down
+        for (int row = window_height; row < rows; row++) {
+            current_sum = current_sum - heatmap[(row - window_height) * cols + col] + heatmap[row * cols + col];
+            if (current_sum > max_sum) {
+                max_sum = current_sum;
+            }
+        }
+        
+        max_sums[col] = max_sum;
+    }
+    
     // End timing
     double end_time = omp_get_wtime();
     double elapsed_time = end_time - start_time;
     
-    // Check if early exit occurred
-    if (early_exit_row != -1) {
-        printf("Row %d contains no hotspots.\n", early_exit_row);
-        printf("Early exit.\n");
-        printf("Execution took %.4f s\n", elapsed_time);
-    } else {
-        // Normal output - all rows have at least one hotspot
-        if (verbose) {
-            // Print maximum sliding sums per column
-            printf("Max sliding sums per column:\n");
-            for (int col = 0; col < cols; col++) {
-                if (col > 0) printf(",");
-                printf("%llu", max_sums[col]);
-            }
-            printf("\n");
-            
-            // Print hotspots per row
-            printf("Hotspots per row:\n");
-            for (int row = 0; row < rows; row++) {
-                printf("Row %d: %d hotspot(s)\n", row, hotspots_per_row[row].count);
-            }
+    // Normal output - all rows have at least one hotspot
+    if (verbose) {
+        // Print maximum sliding sums per column
+        printf("Max sliding sums per column:\n");
+        for (int col = 0; col < cols; col++) {
+            if (col > 0) printf(",");
+            printf("%llu", max_sums[col]);
         }
+        printf("\n");
         
-        printf("Total hotspots found: %d\n", total_hotspots);
-        printf("Execution took %.4f s\n", elapsed_time);
+        // Print hotspots per row
+        printf("Hotspots per row:\n");
+        for (int row = 0; row < rows; row++) {
+            printf("Row %d: %d hotspot(s)\n", row, hotspots_per_row[row].count);
+        }
     }
+    
+    printf("Total hotspots found: %d\n", total_hotspots);
+    printf("Execution took %.4f s\n", elapsed_time);
     
     // Clean up
     free(max_sums);
     free(hotspots_per_row);
-    
-    // Clean up
     free(heatmap);
     
     return 0;
