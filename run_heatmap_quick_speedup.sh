@@ -16,9 +16,6 @@
 #SBATCH --output=./out/heatmap_quick_speedup.out.%j
 #SBATCH --error=./out/heatmap_quick_speedup.err.%j
 
-# Load required modules
-module load gcc/14.3.0
-
 # Test parameters - should trigger early exit for interesting speedup comparison
 COLS=2048
 ROWS=2048

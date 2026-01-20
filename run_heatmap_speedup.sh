@@ -16,9 +16,6 @@
 #SBATCH --output=./out/heatmap_speedup.out.%j
 #SBATCH --error=./out/heatmap_speedup.err.%j
 
-# Load required modules
-module load gcc/14.3.0
-
 # Test parameters (adjust for good runtime - aim for 10-60 seconds sequential)
 COLS=2048
 ROWS=2048

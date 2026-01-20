@@ -16,9 +16,6 @@
 #SBATCH --output=./out/pi_tasks_speedup.out.%j
 #SBATCH --error=./out/pi_tasks_speedup.err.%j
 
-# Load required modules
-module load gcc/14.3.0
-
 # Test parameters as specified in the assignment
 NUM_TASKS=20000
 LOWER=10000
