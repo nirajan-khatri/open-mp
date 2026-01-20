@@ -1,11 +1,20 @@
-#!/bin/bash
-#SBATCH --job-name=heatmap_speedup
-#SBATCH --output=/home/fd-%u/out/heatmap_speedup_%j.out
-#SBATCH --error=/home/fd-%u/out/heatmap_speedup_%j.err
-#SBATCH --time=01:00:00
+#!/usr/bin/env bash
+####### Job Name #######
+#SBATCH --job-name="heatmap_speedup"
+
+####### Partition #######
+#SBATCH --partition=all
+
+####### Resources #######
+#SBATCH --time=0-01:00:00
+
+####### Node Info #######
+#SBATCH --exclusive
 #SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=64
+
+####### Output #######
+#SBATCH --output=./out/heatmap_speedup.out.%j
+#SBATCH --error=./out/heatmap_speedup.err.%j
 
 # Load required modules
 module load gcc/14.3.0

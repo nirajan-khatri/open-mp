@@ -1,11 +1,20 @@
-#!/bin/bash
-#SBATCH --job-name=pi_tasks_speedup
-#SBATCH --output=/home/fd-%u/out/pi_tasks_speedup_%j.out
-#SBATCH --error=/home/fd-%u/out/pi_tasks_speedup_%j.err
-#SBATCH --time=02:00:00
+#!/usr/bin/env bash
+####### Job Name #######
+#SBATCH --job-name="pi_tasks_speedup"
+
+####### Partition #######
+#SBATCH --partition=all
+
+####### Resources #######
+#SBATCH --time=0-02:00:00
+
+####### Node Info #######
+#SBATCH --exclusive
 #SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=64
+
+####### Output #######
+#SBATCH --output=./out/pi_tasks_speedup.out.%j
+#SBATCH --error=./out/pi_tasks_speedup.err.%j
 
 # Load required modules
 module load gcc/14.3.0
