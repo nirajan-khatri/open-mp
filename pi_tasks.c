@@ -45,19 +45,19 @@ unsigned long my_rand(unsigned long* state, unsigned long lower, unsigned long u
     return (range > 0) ? (result % range + lower) : lower;
 }
 
-// Compute π using the Leibniz series (Gregory-Leibniz formula)
-// π/4 = 1 - 1/3 + 1/5 - 1/7 + 1/9 - 1/11 + ...
-// Uses SIMD for vectorization within each task
+// Compute π using Riemann sum (midpoint rule) - integral method from exercises
+// π = integral from 0 to 1 of 4/(1+x²) dx
 double compute_pi(unsigned long precision) {
     double sum = 0.0;
+    double step = 1.0 / (double)precision;
     
     #pragma omp simd reduction(+:sum)
-    for (unsigned long k = 0; k < precision; k++) {
-        double sign = (k % 2 == 0) ? 1.0 : -1.0;
-        sum += sign / (2.0 * k + 1.0);
+    for (unsigned long i = 0; i < precision; i++) {
+        double x = (i + 0.5) * step;  // Midpoint of each interval
+        sum += 4.0 / (1.0 + x * x);
     }
     
-    return 4.0 * sum;
+    return sum * step;
 }
 
 // Recursive function to spawn tasks
