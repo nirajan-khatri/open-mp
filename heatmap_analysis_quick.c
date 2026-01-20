@@ -39,9 +39,9 @@ unsigned long my_rand(unsigned long* state, unsigned long lower, unsigned long u
     return (range > 0) ? (result % range + lower) : lower;
 }
 
-// Initialize heatmap with random values
+// Initialize heatmap with random values (NUMA-aware: parallel for first-touch)
 unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsigned long lower, unsigned long upper) {
-    // Allocate flat 1D array to represent 2D matrix (unsigned long as per spec)
+    // Allocate flat 1D array to represent 2D matrix
     unsigned long *heatmap = (unsigned long*) malloc(rows * cols * sizeof(unsigned long));
     
     if (heatmap == NULL) {
@@ -50,7 +50,8 @@ unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsign
     }
     
     // Fill the array with random values in range [lower, upper)
-    // Each cell gets a unique seed based on its position
+    // Parallelized for NUMA first-touch: each thread initializes data it will later process
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             unsigned long s = seed * concatenate(i, j);
@@ -63,8 +64,8 @@ unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsign
 
 // Pre-process heatmap by applying hash function work_factor times
 void preprocess_heatmap(unsigned long *heatmap, int rows, int cols, int work_factor) {
-    // Apply hash function work_factor times to each element - single parallel region
-    #pragma omp parallel for collapse(2)
+    // Apply hash function work_factor times to each element
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             unsigned long val = heatmap[i * cols + j];
@@ -114,18 +115,6 @@ int main(int argc, char *argv[]) {
     
     // Step 1: Initialize heatmap
     unsigned long *heatmap = initialize_heatmap(rows, cols, seed, lower, upper);
-    
-    // Print original array if verbose (before transformation)
-    if (verbose) {
-        printf("A:\n");
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                if (j > 0) printf(",");
-                printf("%lu", heatmap[i * cols + j]);
-            }
-            printf("\n");
-        }
-    }
     
     // Step 2: Pre-process heatmap
     preprocess_heatmap(heatmap, rows, cols, work_factor);
@@ -191,12 +180,12 @@ int main(int argc, char *argv[]) {
     
     // Check if early exit occurred
     if (early_exit_row != -1) {
-        // End timing
-        double end_time = omp_get_wtime();
-        double elapsed_time = end_time - start_time;
-        
         printf("Row %d contains no hotspots.\n", early_exit_row);
         printf("Early exit.\n");
+        
+        // End timing AFTER output (as per spec)
+        double end_time = omp_get_wtime();
+        double elapsed_time = end_time - start_time;
         printf("Execution took %.4f s\n", elapsed_time);
         
         // Clean up
@@ -208,7 +197,7 @@ int main(int argc, char *argv[]) {
     // No early exit - compute sliding sums (only do this if all rows have hotspots)
     unsigned long long *max_sums = (unsigned long long*) malloc(cols * sizeof(unsigned long long));
     
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for (int col = 0; col < cols; col++) {
         unsigned long long max_sum = 0;
         unsigned long long current_sum = 0;
@@ -230,10 +219,6 @@ int main(int argc, char *argv[]) {
         max_sums[col] = max_sum;
     }
     
-    // End timing
-    double end_time = omp_get_wtime();
-    double elapsed_time = end_time - start_time;
-    
     // Normal output - all rows have at least one hotspot
     if (verbose) {
         // Print maximum sliding sums per column
@@ -252,6 +237,10 @@ int main(int argc, char *argv[]) {
     }
     
     printf("Total hotspots found: %d\n", total_hotspots);
+    
+    // End timing AFTER output (as per spec)
+    double end_time = omp_get_wtime();
+    double elapsed_time = end_time - start_time;
     printf("Execution took %.4f s\n", elapsed_time);
     
     // Clean up
