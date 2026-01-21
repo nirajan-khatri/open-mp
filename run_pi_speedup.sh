@@ -17,7 +17,7 @@
 #SBATCH --error=./out/pi_tasks_speedup.err.%j
 
 # Test parameters as specified in the assignment
-NUM_TASKS=20000
+NUM_TASKS=10000
 LOWER=10000
 UPPER=1000000
 SEED=42
