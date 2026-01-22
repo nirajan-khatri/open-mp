@@ -30,9 +30,9 @@ WINDOW_HEIGHT=50
 VERBOSE=0
 WORK_FACTOR=50
 
-echo "======================================"
+echo ""
 echo "Heatmap Analysis Speedup Measurement"
-echo "======================================"
+echo ""
 echo "Parameters: columns=$COLS, rows=$ROWS, seed=$SEED"
 echo "lower=$LOWER, upper=$UPPER, window_height=$WINDOW_HEIGHT"
 echo "work_factor=$WORK_FACTOR"
@@ -46,9 +46,9 @@ declare -a times
 # Test with different thread counts
 for THREADS in 1 2 4 8 16 32 64
 do
-    echo "----------------------------------------"
+    echo ""
     echo "Running with $THREADS thread(s)..."
-    echo "----------------------------------------"
+    echo ""
     
     # Run the program and capture output
     output=$(./heatmap_analysis $COLS $ROWS $SEED $LOWER $UPPER $WINDOW_HEIGHT $VERBOSE $THREADS $WORK_FACTOR)
@@ -63,9 +63,8 @@ do
     echo ""
 done
 
-echo "======================================"
+echo ""
 echo "Speedup Measurement Summary"
-echo "======================================"
 echo ""
 echo "Thread Count | Time (s) | Speedup | Efficiency"
 echo "-------------|----------|---------|------------"
@@ -76,13 +75,11 @@ for THREADS in 1 2 4 8 16 32 64
 do
     time=${times[$THREADS]}
     if [ -n "$time" ] && [ -n "$baseline" ]; then
-        speedup=$(echo "scale=4; $baseline / $time" | bc)
-        efficiency=$(echo "scale=4; $speedup / $THREADS * 100" | bc)
+        speedup=$(awk -v b="$baseline" -v t="$time" 'BEGIN {printf "%.4f", b/t}')
+        efficiency=$(awk -v s="$speedup" -v n="$THREADS" 'BEGIN {printf "%.4f", s/n*100}')
         printf "%12d | %8s | %7s | %9s%%\n" $THREADS $time $speedup $efficiency
     fi
 done
 
 echo ""
-echo "======================================"
 echo "Speedup measurement complete!"
-echo "======================================"
