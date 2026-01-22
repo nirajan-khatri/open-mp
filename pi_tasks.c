@@ -49,11 +49,14 @@ unsigned long my_rand(unsigned long* state, unsigned long lower, unsigned long u
 double compute_pi(unsigned long precision) {
     double sum = 0.0;
     double step = 1.0 / (double)precision;
+    double half_step = 0.5 * step;
     
+    // Optimized: precompute half_step, reduce operations per iteration
     #pragma omp simd reduction(+:sum)
     for (unsigned long i = 0; i < precision; i++) {
-        double x = (i + 0.5) * step;  // Midpoint of each interval
-        sum += 4.0 / (1.0 + x * x);
+        double x = i * step + half_step;
+        double x_sq = x * x;
+        sum += 4.0 / (1.0 + x_sq);
     }
     
     return sum * step;
@@ -63,15 +66,6 @@ double compute_pi(unsigned long precision) {
 void spawn_pi_task(unsigned long task_seed, int *tasks_created, int num_tasks, 
                    unsigned long lower, unsigned long upper, padded_double *thread_pi, 
                    padded_int *tasks_per_thread, int num_threads) {
-    
-    // Check if we've reached the limit
-    int current_count;
-    #pragma omp atomic capture
-    current_count = ++(*tasks_created);
-    
-    if (current_count > num_tasks) {
-        return; // Exceeded limit, don't process this task
-    }
     
     int thread_id = omp_get_thread_num();
     
@@ -90,22 +84,28 @@ void spawn_pi_task(unsigned long task_seed, int *tasks_created, int num_tasks,
     unsigned long spawn_state = hash(task_seed);
     int num_new_tasks = my_rand(&spawn_state, 1, 5);  // Returns 1-4
     
-    // Spawn new child tasks
-    for (int i = 0; i < num_new_tasks; i++) {
-        // Check if we can spawn more tasks
-        int check_count;
-        #pragma omp atomic read
-        check_count = *tasks_created;
+    // OPTIMIZATION: Single atomic operation for all children instead of per-spawn checks
+    // This reduces atomic operations from ~4 per task to ~1 per task
+    int current_count;
+    #pragma omp atomic capture
+    current_count = (*tasks_created += num_new_tasks);
+    
+    // Adjust if we exceeded the limit
+    int actual_spawn = num_new_tasks;
+    if (current_count > num_tasks) {
+        actual_spawn = num_new_tasks - (current_count - num_tasks);
+        if (actual_spawn < 0) actual_spawn = 0;
+    }
+    
+    // Spawn child tasks
+    for (int i = 0; i < actual_spawn; i++) {
+        // Create unique seed for child task using hash and concatenate
+        unsigned long child_seed = hash(task_seed * concatenate(i + 1, thread_id + 1));
         
-        if (check_count < num_tasks) {
-            // Create unique seed for child task using hash and concatenate
-            unsigned long child_seed = hash(task_seed * concatenate(i + 1, thread_id + 1));
-            
-            #pragma omp task firstprivate(child_seed)
-            {
-                spawn_pi_task(child_seed, tasks_created, num_tasks, lower, upper, 
-                             thread_pi, tasks_per_thread, num_threads);
-            }
+        #pragma omp task firstprivate(child_seed)
+        {
+            spawn_pi_task(child_seed, tasks_created, num_tasks, lower, upper, 
+                         thread_pi, tasks_per_thread, num_threads);
         }
     }
 }
