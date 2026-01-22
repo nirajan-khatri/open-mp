@@ -122,11 +122,12 @@ int main(int argc, char *argv[]) {
         printf("A:\n");
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                if (j > 0) printf(", ");
+                if (j > 0) printf(",");
                 printf("%lu", heatmap[i * cols + j]);
             }
             printf("\n");
         }
+        printf("\n");
     }
     
     // Step 2: Pre-process heatmap
@@ -204,7 +205,7 @@ int main(int argc, char *argv[]) {
         // Print maximum sliding sums per column
         printf("\nMax sliding sums per column:\n");
         for (int col = 0; col < cols; col++) {
-            if (col > 0) printf(", ");
+            if (col > 0) printf(",");
             printf("%llu", max_sums[col]);
         }
         printf("\n\n");

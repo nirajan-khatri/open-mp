@@ -1,7 +1,6 @@
 # OpenMP Examination - Parallel Programming
 
-**Student:** [Your Name]  
-**Team Partner:** [Partner Name if applicable]
+**Student:** Nirajan Khatri
 
 ## Compilation Instructions
 
@@ -86,29 +85,3 @@ sbatch run_heatmap_quick_speedup.sh
 ```bash
 sbatch run_pi_speedup.sh
 ```
-
-## Files Included
-
-- `heatmap_analysis.c` - Task 1.1 implementation
-- `heatmap_analysis_quick.c` - Task 1.2 implementation (to be completed)
-- `pi_tasks.c` - Task 1.3 implementation (to be completed)
-- `Makefile` - Build configuration
-- `run_heatmap_speedup.sh` - Slurm script for Task 1.1 benchmarks
-- `run_heatmap_quick_speedup.sh` - Slurm script for Task 1.2 benchmarks
-- `run_pi_speedup.sh` - Slurm script for Task 1.3 benchmarks
-- `*.out` - Slurm output files with timing results
-- `speedup_report.pdf` - Speedup analysis with plots and tables
-
-## Notes
-
-- All programs use the exact helper functions (my_rand, hash, concatenate) from the specification
-- Code has been tested locally and should produce correct results on HPC cluster
-- Timing measurements start after parameter parsing and end after output
-- Thread counts tested: 1, 2, 4, 8, 16, 32, 64
-
-## Authorship
-
-- **Task 1.1:** [Author]
-- **Task 1.2:** [Author]
-- **Task 1.3:** [Author]
-- **Helper functions:** From specification (Page 7)

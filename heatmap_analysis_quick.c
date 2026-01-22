@@ -21,7 +21,7 @@ unsigned long hash(unsigned long x) {
     return x;
 }
 
-// Concatenate function from specification PDF (Page 7)
+// Concatenate function
 unsigned concatenate(unsigned x, unsigned y) {
     unsigned pow = 10;
     while (y >= pow)
@@ -29,7 +29,7 @@ unsigned concatenate(unsigned x, unsigned y) {
     return x * pow + y;
 }
 
-// my_rand function from specification PDF (Page 7)
+// my_rand function
 unsigned long my_rand(unsigned long* state, unsigned long lower, unsigned long upper) {
     *state ^= *state >> 12;
     *state ^= *state << 25;
@@ -50,8 +50,8 @@ unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsign
     }
     
     // Fill the array with random values in range [lower, upper)
-    // Parallelized for NUMA first-touch: each thread initializes data it will later process
-    #pragma omp parallel for collapse(2) schedule(static)
+    // Parallelized for NUMA first-touch
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             unsigned long s = seed * concatenate(i, j);
@@ -84,17 +84,16 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
-    
     // Parse command-line arguments
-    int cols = atoi(argv[1]);       // columns
-    int rows = atoi(argv[2]);       // rows
-    unsigned long seed = strtoul(argv[3], NULL, 10);  // seed
-    unsigned long lower = strtoul(argv[4], NULL, 10); // lower bound
-    unsigned long upper = strtoul(argv[5], NULL, 10); // upper bound
-    int window_height = atoi(argv[6]); // window_height
-    int verbose = atoi(argv[7]);    // verbose
-    int num_threads = atoi(argv[8]); // num_threads
-    int work_factor = atoi(argv[9]); // work_factor
+    int cols = atoi(argv[1]);
+    int rows = atoi(argv[2]);
+    unsigned long seed = strtoul(argv[3], NULL, 10);  
+    unsigned long lower = strtoul(argv[4], NULL, 10); 
+    unsigned long upper = strtoul(argv[5], NULL, 10); 
+    int window_height = atoi(argv[6]); 
+    int verbose = atoi(argv[7]);    
+    int num_threads = atoi(argv[8]); 
+    int work_factor = atoi(argv[9]);
     
     // Set number of OpenMP threads
     omp_set_num_threads(num_threads);
@@ -110,70 +109,92 @@ int main(int argc, char *argv[]) {
     printf("Parameters: columns=%d, rows=%d, seed=%lu, lower=%lu, upper=%lu, window_height=%d, verbose=%d, num_threads=%d, work_factor=%d\n\n",
            cols, rows, seed, lower, upper, window_height, verbose, num_threads, work_factor);
     
-    // Start timing
+    // Start timing immediately after reading command-line parameters
     double start_time = omp_get_wtime();
     
     // Step 1: Initialize heatmap
     unsigned long *heatmap = initialize_heatmap(rows, cols, seed, lower, upper);
     
+    // Print original array if verbose (before transformation)
+    if (verbose) {
+        printf("A:\n");
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                if (j > 0) printf(",");
+                printf("%lu", heatmap[i * cols + j]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+    
     // Step 2: Pre-process heatmap
     preprocess_heatmap(heatmap, rows, cols, work_factor);
     
-    // Step 3: Part B - Count local hotspots with early termination
-    // Check hotspots FIRST to enable early exit as quickly as possible
+    // Step 3: Count local hotspots with early exit capability
     padded_int *hotspots_per_row = (padded_int*) calloc(rows, sizeof(padded_int));
     int total_hotspots = 0;
-    volatile int early_exit_row = -1;  // Use volatile for visibility across threads
-    volatile int should_exit = 0;       // Shared flag for early termination
+    int early_exit_row = -1;
+    int found_zero = 0;  // Flag for early termination
     
-    #pragma omp parallel for schedule(dynamic) reduction(+:total_hotspots)
-    for (int i = 0; i < rows; i++) {
-        // Check if another thread already found a row with zero hotspots
-        if (should_exit) {
-            continue;  // Skip remaining rows
-        }
+    #pragma omp parallel
+    {
+        int local_hotspots = 0;
+        int local_exit_row = -1;
         
-        int row_hotspots = 0;
-        for (int j = 0; j < cols; j++) {
-            unsigned long current = heatmap[i * cols + j];
-            int is_hotspot = 1;
-            
-            // Check all 4 neighbors (up, down, left, right)
-            // Only check neighbors that exist - edge cells have fewer neighbors
-            
-            // Check up (only if not first row)
-            if (is_hotspot && i > 0 && heatmap[(i-1) * cols + j] >= current) {
-                is_hotspot = 0;
-            }
-            // Check down (only if not last row)
-            if (is_hotspot && i < rows - 1 && heatmap[(i+1) * cols + j] >= current) {
-                is_hotspot = 0;
-            }
-            // Check left (only if not first column)
-            if (is_hotspot && j > 0 && heatmap[i * cols + (j-1)] >= current) {
-                is_hotspot = 0;
-            }
-            // Check right (only if not last column)
-            if (is_hotspot && j < cols - 1 && heatmap[i * cols + (j+1)] >= current) {
-                is_hotspot = 0;
+        #pragma omp for schedule(static) nowait
+        for (int i = 0; i < rows; i++) {
+            // Check if we should exit early
+            if (found_zero) {
+                continue;
             }
             
-            if (is_hotspot) {
-                row_hotspots++;
-            }
-        }
-        
-        hotspots_per_row[i].count = row_hotspots;
-        total_hotspots += row_hotspots;
-        
-        // Check for early exit condition
-        if (row_hotspots == 0) {
-            #pragma omp critical
-            {
-                if (!should_exit) {
-                    should_exit = 1;
-                    early_exit_row = i;
+            int row_hotspots = 0;
+            for (int j = 0; j < cols; j++) {
+                unsigned long current = heatmap[i * cols + j];
+                int is_hotspot = 1;
+                
+                // Check all 4 neighbors (up, down, left, right)
+                // Check up (only if not first row)
+                if (is_hotspot && i > 0 && heatmap[(i-1) * cols + j] >= current) {
+                    is_hotspot = 0;
                 }
+                // Check down (only if not last row)
+                if (is_hotspot && i < rows - 1 && heatmap[(i+1) * cols + j] >= current) {
+                    is_hotspot = 0;
+                }
+                // Check left (only if not first column)
+                if (is_hotspot && j > 0 && heatmap[i * cols + (j-1)] >= current) {
+                    is_hotspot = 0;
+                }
+                // Check right (only if not last column)
+                if (is_hotspot && j < cols - 1 && heatmap[i * cols + (j+1)] >= current) {
+                    is_hotspot = 0;
+                }
+                
+                if (is_hotspot) {
+                    row_hotspots++;
+                }
+            }
+            
+            hotspots_per_row[i].count = row_hotspots;
+            local_hotspots += row_hotspots;
+            
+            // Check for early exit condition
+            if (row_hotspots == 0) {
+                local_exit_row = i;
+                #pragma omp atomic write
+                found_zero = 1;
+                #pragma omp flush(found_zero)
+            }
+        }
+        
+        // Reduce local results
+        #pragma omp critical
+        {
+            total_hotspots += local_hotspots;
+            if (local_exit_row != -1 && (early_exit_row == -1 || local_exit_row < early_exit_row)) {
+                early_exit_row = local_exit_row;
             }
         }
     }
@@ -183,7 +204,7 @@ int main(int argc, char *argv[]) {
         printf("Row %d contains no hotspots.\n", early_exit_row);
         printf("Early exit.\n");
         
-        // End timing AFTER output (as per spec)
+        // End timing immediately after output
         double end_time = omp_get_wtime();
         double elapsed_time = end_time - start_time;
         printf("Execution took %.4f s\n", elapsed_time);
@@ -194,7 +215,8 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     
-    // No early exit - compute sliding sums (only do this if all rows have hotspots)
+    // No early exit - all rows have at least one hotspot
+    // Step 4: Calculate maximum range sums for each column
     unsigned long long *max_sums = (unsigned long long*) malloc(cols * sizeof(unsigned long long));
     
     #pragma omp parallel for schedule(static)
@@ -219,26 +241,27 @@ int main(int argc, char *argv[]) {
         max_sums[col] = max_sum;
     }
     
-    // Normal output - all rows have at least one hotspot
+    // Output results
     if (verbose) {
         // Print maximum sliding sums per column
-        printf("Max sliding sums per column:\n");
+        printf("\nMax sliding sums per column:\n");
         for (int col = 0; col < cols; col++) {
             if (col > 0) printf(",");
             printf("%llu", max_sums[col]);
         }
-        printf("\n");
+        printf("\n\n");
         
         // Print hotspots per row
         printf("Hotspots per row:\n");
         for (int row = 0; row < rows; row++) {
             printf("Row %d: %d hotspot(s)\n", row, hotspots_per_row[row].count);
         }
+        printf("\n");
     }
     
     printf("Total hotspots found: %d\n", total_hotspots);
     
-    // End timing AFTER output (as per spec)
+    // End timing immediately after output
     double end_time = omp_get_wtime();
     double elapsed_time = end_time - start_time;
     printf("Execution took %.4f s\n", elapsed_time);
