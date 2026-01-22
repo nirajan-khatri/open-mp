@@ -50,8 +50,9 @@ unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsign
     }
     
     // Fill the array with random values in range [lower, upper)
-    // Parallelized for NUMA first-touch: each thread initializes data it will later process
-    #pragma omp parallel for collapse(2) schedule(static)
+    // Parallelized for NUMA first-touch: each thread initializes contiguous row chunks
+    // Removed collapse(2) to ensure better NUMA locality for row-wise access patterns
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             unsigned long s = seed * concatenate(i, j);
@@ -64,8 +65,8 @@ unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsign
 
 // Pre-process heatmap by applying hash function work_factor times
 void preprocess_heatmap(unsigned long *heatmap, int rows, int cols, int work_factor) {
-    // Apply hash function work_factor times to each element - single parallel region
-    #pragma omp parallel for collapse(2)
+    // Apply hash function work_factor times to each element
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             unsigned long val = heatmap[i * cols + j];
@@ -137,7 +138,7 @@ int main(int argc, char *argv[]) {
     padded_int *hotspots_per_row = (padded_int*) calloc(rows, sizeof(padded_int));
     int total_hotspots = 0;
     
-    #pragma omp parallel reduction(+:total_hotspots)
+    #pragma omp parallel
     {
         // Part A: Calculate maximum range sums for each column
         #pragma omp for schedule(static) nowait
@@ -163,8 +164,8 @@ int main(int argc, char *argv[]) {
         }
         
         // Part B: Count local hotspots
-        // Note: nowait on Part A allows threads finishing early to start Part B
-        #pragma omp for schedule(static)
+        // Reduction applied at the for directive level for clarity and correctness
+        #pragma omp for schedule(static) reduction(+:total_hotspots)
         for (int i = 0; i < rows; i++) {
             int row_hotspots = 0;
             for (int j = 0; j < cols; j++) {
@@ -225,8 +226,6 @@ int main(int argc, char *argv[]) {
     // Clean up
     free(max_sums);
     free(hotspots_per_row);
-    
-    // Clean up
     free(heatmap);
     
     return 0;
