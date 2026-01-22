@@ -88,7 +88,10 @@ void spawn_pi_task(unsigned long task_seed, int *tasks_created, int num_tasks,
     // This reduces atomic operations from ~4 per task to ~1 per task
     int current_count;
     #pragma omp atomic capture
-    current_count = (*tasks_created += num_new_tasks);
+    {
+        *tasks_created += num_new_tasks;
+        current_count = *tasks_created;
+    }
     
     // Adjust if we exceeded the limit
     int actual_spawn = num_new_tasks;
