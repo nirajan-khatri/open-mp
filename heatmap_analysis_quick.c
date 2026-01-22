@@ -11,7 +11,7 @@ typedef struct {
     char padding[CACHE_LINE_SIZE - sizeof(int)];
 } padded_int;
 
-// Hash function from specification PDF (Page 7)
+// Hash function
 unsigned long hash(unsigned long x) {
     x ^= (x >> 21);
     x *= 2654435761UL;
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     
     // Print startup message and parameters
     printf("Starting heatmap_analysis\n");
-    printf("Parameters: columns=%d, rows=%d, seed=%lu, lower=%lu, upper=%lu, window_height=%d, verbose=%d, num_threads=%d, work_factor=%d\n",
+    printf("Parameters: columns=%d, rows=%d, seed=%lu, lower=%lu, upper=%lu, window_height=%d, verbose=%d, num_threads=%d, work_factor=%d\n\n",
            cols, rows, seed, lower, upper, window_height, verbose, num_threads, work_factor);
     
     // Start timing

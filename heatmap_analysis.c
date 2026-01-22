@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     
     // Print startup message and parameters
     printf("Starting heatmap_analysis\n");
-    printf("Parameters: columns=%d, rows=%d, seed=%lu, lower=%lu, upper=%lu, window_height=%d, verbose=%d, num_threads=%d, work_factor=%d\n",
+    printf("Parameters: columns=%d, rows=%d, seed=%lu, lower=%lu, upper=%lu, window_height=%d, verbose=%d, num_threads=%d, work_factor=%d\n\n",
            cols, rows, seed, lower, upper, window_height, verbose, num_threads, work_factor);
     
     // Start timing
@@ -121,10 +121,10 @@ int main(int argc, char *argv[]) {
         printf("A:\n");
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                if (j > 0) printf(",");
+                if (j > 0) printf(", ");
                 printf("%lu", heatmap[i * cols + j]);
             }
-            printf("\n");
+            printf("\n\n");
         }
     }
     
@@ -203,10 +203,10 @@ int main(int argc, char *argv[]) {
         // Print maximum sliding sums per column
         printf("Max sliding sums per column:\n");
         for (int col = 0; col < cols; col++) {
-            if (col > 0) printf(",");
+            if (col > 0) printf(", ");
             printf("%llu", max_sums[col]);
         }
-        printf("\n");
+        printf("\n\n");
         
         // Print hotspots per row
         printf("Hotspots per row:\n");
@@ -215,7 +215,7 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    printf("Total hotspots found: %d\n", total_hotspots);
+    printf("\n Total hotspots found: %d\n", total_hotspots);
     
     // End timing AFTER output (as per spec)
     double end_time = omp_get_wtime();
