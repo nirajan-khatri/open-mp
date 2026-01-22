@@ -1,0 +1,86 @@
+
+Heatmap Analysis Speedup Measurement
+
+Parameters: columns=2048, rows=2048, seed=42
+lower=0, upper=100, window_height=50
+work_factor=50
+Node: compute-00
+Date: Thu Jan 22 08:30:37 PM CET 2026
+
+
+Running with 1 thread(s)...
+
+Starting heatmap_analysis
+Parameters: columns=2048, rows=2048, seed=42, lower=0, upper=100, window_height=50, verbose=0, num_threads=1, work_factor=50
+
+Total hotspots found: 797261
+Execution took 2.5717 s
+
+
+Running with 2 thread(s)...
+
+Starting heatmap_analysis
+Parameters: columns=2048, rows=2048, seed=42, lower=0, upper=100, window_height=50, verbose=0, num_threads=2, work_factor=50
+
+Total hotspots found: 797261
+Execution took 1.3019 s
+
+
+Running with 4 thread(s)...
+
+Starting heatmap_analysis
+Parameters: columns=2048, rows=2048, seed=42, lower=0, upper=100, window_height=50, verbose=0, num_threads=4, work_factor=50
+
+Total hotspots found: 797261
+Execution took 0.6683 s
+
+
+Running with 8 thread(s)...
+
+Starting heatmap_analysis
+Parameters: columns=2048, rows=2048, seed=42, lower=0, upper=100, window_height=50, verbose=0, num_threads=8, work_factor=50
+
+Total hotspots found: 797261
+Execution took 0.3428 s
+
+
+Running with 16 thread(s)...
+
+Starting heatmap_analysis
+Parameters: columns=2048, rows=2048, seed=42, lower=0, upper=100, window_height=50, verbose=0, num_threads=16, work_factor=50
+
+Total hotspots found: 797261
+Execution took 0.1917 s
+
+
+Running with 32 thread(s)...
+
+Starting heatmap_analysis
+Parameters: columns=2048, rows=2048, seed=42, lower=0, upper=100, window_height=50, verbose=0, num_threads=32, work_factor=50
+
+Total hotspots found: 797261
+Execution took 0.1052 s
+
+
+Running with 64 thread(s)...
+
+Starting heatmap_analysis
+Parameters: columns=2048, rows=2048, seed=42, lower=0, upper=100, window_height=50, verbose=0, num_threads=64, work_factor=50
+
+Total hotspots found: 797261
+Execution took 0.0853 s
+
+
+Speedup Measurement Summary
+
+Thread Count | Time (s) | Speedup | Efficiency
+-------------|----------|---------|------------
+           1 |   2.5717 |  1.0000 |  100.0000%
+           2 |   1.3019 |  1.9753 |   98.7650%
+           4 |   0.6683 |  3.8481 |   96.2025%
+           8 |   0.3428 |  7.5020 |   93.7750%
+          16 |   0.1917 | 13.4152 |   83.8450%
+          32 |   0.1052 | 24.4458 |   76.3931%
+          64 |   0.0853 | 30.1489 |   47.1077%
+
+Speedup measurement complete!
