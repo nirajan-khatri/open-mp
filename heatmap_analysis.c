@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
     // Output results
     if (verbose) {
         // Print maximum sliding sums per column
-        printf("\nMax sliding sums per column:\n");
+        printf("Max sliding sums per column:\n");
         for (int col = 0; col < cols; col++) {
             if (col > 0) printf(",");
             printf("%llu", max_sums[col]);
