@@ -214,9 +214,10 @@ int main(int argc, char *argv[]) {
         for (int row = 0; row < rows; row++) {
             printf("Row %d: %d hotspot(s)\n", row, hotspots_per_row[row].count);
         }
+        printf("\n");
     }
     
-    printf("\nTotal hotspots found: %d\n", total_hotspots);
+    printf("Total hotspots found: %d\n", total_hotspots);
     
     // End timing AFTER output (as per spec)
     double end_time = omp_get_wtime();
