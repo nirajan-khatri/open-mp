@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
     printf("Parameters: columns=%d, rows=%d, seed=%lu, lower=%lu, upper=%lu, window_height=%d, verbose=%d, num_threads=%d, work_factor=%d\n\n",
            cols, rows, seed, lower, upper, window_height, verbose, num_threads, work_factor);
     
-    // Start timing
+    // Start timing immediately after reading command-line parameters
     double start_time = omp_get_wtime();
     
     // Step 1: Initialize heatmap
@@ -219,7 +219,7 @@ int main(int argc, char *argv[]) {
     
     printf("Total hotspots found: %d\n", total_hotspots);
     
-    // End timing AFTER output (as per spec)
+    // End timing immediately after output (as per speedup measurement spec)
     double end_time = omp_get_wtime();
     double elapsed_time = end_time - start_time;
     printf("Execution took %.4f s\n", elapsed_time);
