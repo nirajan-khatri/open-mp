@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
                 if (j > 0) printf(", ");
                 printf("%lu", heatmap[i * cols + j]);
             }
-            printf("\n\n");
+            printf("\n");
         }
     }
     
@@ -201,7 +201,7 @@ int main(int argc, char *argv[]) {
     // Output results
     if (verbose) {
         // Print maximum sliding sums per column
-        printf("Max sliding sums per column:\n");
+        printf("\nMax sliding sums per column:\n");
         for (int col = 0; col < cols; col++) {
             if (col > 0) printf(", ");
             printf("%llu", max_sums[col]);
@@ -215,7 +215,7 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    printf("\n Total hotspots found: %d\n", total_hotspots);
+    printf("\nTotal hotspots found: %d\n", total_hotspots);
     
     // End timing AFTER output (as per spec)
     double end_time = omp_get_wtime();
