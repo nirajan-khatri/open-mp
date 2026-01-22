@@ -39,7 +39,7 @@ unsigned long my_rand(unsigned long* state, unsigned long lower, unsigned long u
     return (range > 0) ? (result % range + lower) : lower;
 }
 
-// Initialize heatmap with random values (NUMA-aware: parallel for first-touch)
+// Initialize heatmap with random values
 unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsigned long lower, unsigned long upper) {
     // Allocate flat 1D array to represent 2D matrix
     unsigned long *heatmap = (unsigned long*) malloc(rows * cols * sizeof(unsigned long));
@@ -50,7 +50,6 @@ unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsign
     }
     
     // Fill the array with random values in range [lower, upper)
-    // Parallelized for NUMA first-touch
     #pragma omp parallel for schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -112,7 +111,7 @@ int main(int argc, char *argv[]) {
     // Start timing immediately after reading command-line parameters
     double start_time = omp_get_wtime();
     
-    // Step 1: Initialize heatmap
+    // Initialize heatmap
     unsigned long *heatmap = initialize_heatmap(rows, cols, seed, lower, upper);
     
     // Print original array if verbose (before transformation)
@@ -128,10 +127,10 @@ int main(int argc, char *argv[]) {
         printf("\n");
     }
     
-    // Step 2: Pre-process heatmap
+    // Pre-process heatmap
     preprocess_heatmap(heatmap, rows, cols, work_factor);
     
-    // Step 3: Count local hotspots with early exit capability
+    // Count local hotspots with early exit capability
     padded_int *hotspots_per_row = (padded_int*) calloc(rows, sizeof(padded_int));
     int total_hotspots = 0;
     int early_exit_row = -1;
@@ -216,7 +215,7 @@ int main(int argc, char *argv[]) {
     }
     
     // No early exit - all rows have at least one hotspot
-    // Step 4: Calculate maximum range sums for each column
+    // Calculate maximum range sums for each column
     unsigned long long *max_sums = (unsigned long long*) malloc(cols * sizeof(unsigned long long));
     
     #pragma omp parallel for schedule(static)
@@ -261,7 +260,7 @@ int main(int argc, char *argv[]) {
     
     printf("Total hotspots found: %d\n", total_hotspots);
     
-    // End timing immediately after output
+    // End timing
     double end_time = omp_get_wtime();
     double elapsed_time = end_time - start_time;
     printf("Execution took %.4f s\n", elapsed_time);

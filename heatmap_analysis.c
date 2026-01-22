@@ -39,7 +39,7 @@ unsigned long my_rand(unsigned long* state, unsigned long lower, unsigned long u
     return (range > 0) ? (result % range + lower) : lower;
 }
 
-// Initialize heatmap with random values (NUMA-aware: parallel for first-touch)
+// Initialize heatmap with random values
 unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsigned long lower, unsigned long upper) {
     // Allocate flat 1D array to represent 2D matrix
     unsigned long *heatmap = (unsigned long*) malloc(rows * cols * sizeof(unsigned long));
@@ -50,8 +50,6 @@ unsigned long* initialize_heatmap(int rows, int cols, unsigned long seed, unsign
     }
     
     // Fill the array with random values in range [lower, upper)
-    // Parallelized for NUMA first-touch: each thread initializes contiguous row chunks
-    // Removed collapse(2) to ensure better NUMA locality for row-wise access patterns
     #pragma omp parallel for schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -114,7 +112,7 @@ int main(int argc, char *argv[]) {
     // Start timing immediately after reading command-line parameters
     double start_time = omp_get_wtime();
     
-    // Step 1: Initialize heatmap
+    // Initialize heatmap
     unsigned long *heatmap = initialize_heatmap(rows, cols, seed, lower, upper);
     
     // Print original array if verbose (before transformation)
@@ -130,10 +128,10 @@ int main(int argc, char *argv[]) {
         printf("\n");
     }
     
-    // Step 2: Pre-process heatmap
+    // Pre-process heatmap
     preprocess_heatmap(heatmap, rows, cols, work_factor);
     
-    // Step 3 & 4: Combined parallel region for both Part A and Part B
+    // Combined parallel region for both Part A and Part B
     // Maximizes parallel region length to reduce thread creation/termination overhead
     unsigned long long *max_sums = (unsigned long long*) malloc(cols * sizeof(unsigned long long));
     padded_int *hotspots_per_row = (padded_int*) calloc(rows, sizeof(padded_int));

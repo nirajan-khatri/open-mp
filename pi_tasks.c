@@ -17,7 +17,7 @@ typedef struct {
     char padding[CACHE_LINE_SIZE - sizeof(double)];
 } padded_double;
 
-// Hash function from specification PDF (Page 7)
+// Hash function
 unsigned long hash(unsigned long x) {
     x ^= (x >> 21);
     x *= 2654435761UL;
@@ -27,7 +27,7 @@ unsigned long hash(unsigned long x) {
     return x;
 }
 
-// Concatenate function from specification PDF (Page 7)
+// Concatenate function
 unsigned concatenate(unsigned x, unsigned y) {
     unsigned pow = 10;
     while (y >= pow)
@@ -35,7 +35,7 @@ unsigned concatenate(unsigned x, unsigned y) {
     return x * pow + y;
 }
 
-// my_rand function from specification PDF (Page 7)
+// my_rand function
 unsigned long my_rand(unsigned long* state, unsigned long lower, unsigned long upper) {
     *state ^= *state >> 12;
     *state ^= *state << 25;
@@ -45,8 +45,7 @@ unsigned long my_rand(unsigned long* state, unsigned long lower, unsigned long u
     return (range > 0) ? (result % range + lower) : lower;
 }
 
-// Compute π using Riemann sum (midpoint rule) - integral method from exercises
-// π = integral from 0 to 1 of 4/(1+x²) dx
+// Compute π using Riemann sum (midpoint rule)
 double compute_pi(unsigned long precision) {
     double sum = 0.0;
     double step = 1.0 / (double)precision;
